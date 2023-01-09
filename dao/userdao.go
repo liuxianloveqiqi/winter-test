@@ -59,6 +59,8 @@ func SecreQurryA(u, Q, A string) (bool, string) {
 }
 
 // 修改密码
-func ResetPassword(u, np string) {
-
+func ResetPassword(u, np string) error {
+	strSql := "update user set password=? where username=?"
+	_, err := db.Exec(strSql, np, u)
+	return err
 }

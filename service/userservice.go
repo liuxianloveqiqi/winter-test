@@ -31,7 +31,7 @@ func Md5(pasaword string) string {
 	return passwordHash16
 }
 
-// 根据用户名及密保问题查询密码
+// 根据用户名及密保问题重置密码
 func SecretQurry(c *gin.Context, u string, pa string) {
 	Q := dao.SecretQurryUsername(u)
 	fmt.Println("###########", pa)
@@ -50,10 +50,14 @@ func SecretQurry(c *gin.Context, u string, pa string) {
 			"error":  "输入的密保答案错误,请重新输入",
 		})
 	} else {
-		c.JSON(200, gin.H{
-			"status": 200,
-			"你的密码是":  pa,
-		})
+		newPassword := c.PostForm("newpassword")
+		if len(newPassword) < 4 || len(newPassword) > 15 {
+			c.JSON(400, gin.H{
+				"error": "密码长度应大于等于4小于等于15",
+			})
+			return
+		}
+		ResetPassword(c, u, newPassword)
 	}
 }
 
@@ -75,6 +79,14 @@ func AuthMiddleWare(username string) gin.HandlerFunc {
 }
 
 // 修改密码
-func ResetPassword(u, np string) {
-	dao.ResetPassword(u, Md5(np))
+func ResetPassword(c *gin.Context, u, np string) {
+	err := dao.ResetPassword(u, Md5(np))
+	if err != nil {
+		fmt.Println("修改密码错误：", err)
+	} else {
+		c.JSON(200, gin.H{
+			"status": 200,
+			"你的新密码为": np,
+		})
+	}
 }

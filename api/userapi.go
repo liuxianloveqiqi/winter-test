@@ -18,7 +18,7 @@ func UserRoute(r *gin.Engine) {
 		us.POST("/register", Register)                                             //注册
 		us.POST("/login", Login)                                                   //登录
 		us.GET("logout", Logout)                                                   //退出
-		us.POST("/secret", SecretQurry)                                            //通过密保找回密码
+		us.POST("/secret", SecretQurry)                                            //通过密保重置密码
 		us.POST("/resetpassword", service.AuthMiddleWare(username), ResetPassword) //修改密码
 	}
 }
@@ -83,7 +83,7 @@ func Logout(c *gin.Context) {
 	c.Redirect(301, "/store")
 }
 
-// 密保查询
+// 密保重置密码
 func SecretQurry(c *gin.Context) {
 	username1 := c.PostForm("username")
 	// 先验证用户名是否存在
@@ -98,5 +98,11 @@ func SecretQurry(c *gin.Context) {
 // 修改密码
 func ResetPassword(c *gin.Context) {
 	newPassword := c.PostForm("newpassword")
-	service.ResetPassword(username, newPassword)
+	if len(newPassword) < 4 || len(newPassword) > 15 {
+		c.JSON(400, gin.H{
+			"error": "密码长度应大于等于4小于等于15",
+		})
+		return
+	}
+	service.ResetPassword(c, username, newPassword)
 }
