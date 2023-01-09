@@ -18,7 +18,7 @@ func Register(u *model.UserRegister, passwordhash16 string) {
 		fmt.Printf("err2: %v\n", err2)
 		return
 	}
-	fmt.Printf("i2: %v\n", i2)
+	fmt.Printf("--------i2: %v\n", i2)
 
 }
 
