@@ -6,9 +6,9 @@ import (
 )
 
 // 插入用户注册的数据
-func Register(u *model.UserRegister) {
+func Register(u *model.UserRegister, passwordhash16 string) {
 	sqlStr := "insert into user(username,password,lockname,SecretQ,SecretA) values (?,?,?,?,?)"
-	r, err := db.Exec(sqlStr, u.UserName, u.Password, u.LockName, u.SecretQ, u.SecretA)
+	r, err := db.Exec(sqlStr, u.UserName, passwordhash16, u.LockName, u.SecretQ, u.SecretA)
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 		return
@@ -56,4 +56,9 @@ func SecreQurryA(u, Q, A string) (bool, string) {
 	err := db.QueryRow("select count(*),password from user where username = ? and secretQ = ? and secretA = ? group by username", u, Q, A).Scan(&count, &p)
 	fmt.Println(err, "----------------", count)
 	return err == nil && count == 1, p
+}
+
+// 修改密码
+func ResetPassword(u, np string) {
+
 }

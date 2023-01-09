@@ -2,7 +2,11 @@ package service
 
 import "C"
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"winter-test/dao"
 )
 
@@ -17,15 +21,27 @@ func CheckUsernamelive(c *gin.Context, u string) bool {
 	return dao.QuerryUsername(u)
 }
 
+// md5加密
+func Md5(pasaword string) string {
+	hash := md5.New()
+	hash.Write([]byte(pasaword))
+	passwordHash := hash.Sum(nil)
+	// 将哈希密码转换为16进制储存
+	passwordHash16 := hex.EncodeToString(passwordHash)
+	return passwordHash16
+}
+
 // 根据用户名及密保问题查询密码
-func SecretQurry(c *gin.Context, u string) {
+func SecretQurry(c *gin.Context, u string, pa string) {
 	Q := dao.SecretQurryUsername(u)
+	fmt.Println("###########", pa)
 	c.JSON(200, gin.H{
-		"status":         200,
+		"status":  200,
 		"你的密保问题为": Q,
 	})
 	A := c.PostForm("secretA")
-	is, p := dao.SecreQurryA(u, Q, A)
+	is, phash := dao.SecreQurryA(u, Q, A)
+	fmt.Println("$$$$$$$$$$$$$$$$$$$", phash)
 	if A == "" {
 
 	} else if !is {
@@ -35,8 +51,30 @@ func SecretQurry(c *gin.Context, u string) {
 		})
 	} else {
 		c.JSON(200, gin.H{
-			"status":     200,
-			"你的密码是": p,
+			"status": 200,
+			"你的密码是":  pa,
 		})
 	}
+}
+
+// 中间件cookie凭证
+func AuthMiddleWare(username string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取客户端cookie并校验
+		if cookie, err := c.Cookie("username"); err == nil {
+			if cookie == username {
+				c.Next()
+			}
+		} else {
+			// 返回错误
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "没有登录"})
+			// 若验证不通过，不再调用后续的函数处理
+			c.Abort()
+		}
+	}
+}
+
+// 修改密码
+func ResetPassword(u, np string) {
+	dao.ResetPassword(u, Md5(np))
 }

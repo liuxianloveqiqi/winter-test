@@ -15,11 +15,11 @@ func UserRoute(r *gin.Engine) {
 	// 用户路业组准备
 	us := r.Group("/user")
 	{
-		us.POST("/register", Register)  //注册
-		us.POST("/login", Login)        //登录
-		us.GET("logout", Logout)        //退出
-		us.POST("/secret", SecretQurry) //通过密保找回密码
-		//us.POST("/resetpassword", ResetPassword) //修改密码
+		us.POST("/register", Register)                                             //注册
+		us.POST("/login", Login)                                                   //登录
+		us.GET("logout", Logout)                                                   //退出
+		us.POST("/secret", SecretQurry)                                            //通过密保找回密码
+		us.POST("/resetpassword", service.AuthMiddleWare(username), ResetPassword) //修改密码
 	}
 }
 
@@ -36,7 +36,9 @@ func Register(c *gin.Context) {
 			"status":  200,
 		})
 	}
-	dao.Register(&userregitser)
+	// 使用md5加密密码
+	password := userregitser.Password
+	dao.Register(&userregitser, service.Md5(password))
 	// 注册成功重定向到登录界面
 	c.Redirect(http.StatusFound, "/user/login")
 }
@@ -51,7 +53,8 @@ func Login(c *gin.Context) {
 		return
 	}
 	// 验证密码是否符合
-	if !dao.CheckLogin(username, password) {
+
+	if !dao.CheckLogin(username, service.Md5(password)) {
 		// 验证失败，返回错误信息
 		c.JSON(401, gin.H{
 
@@ -79,6 +82,8 @@ func Logout(c *gin.Context) {
 	// 重定向到网站首页
 	c.Redirect(301, "/store")
 }
+
+// 密保查询
 func SecretQurry(c *gin.Context) {
 	username1 := c.PostForm("username")
 	// 先验证用户名是否存在
@@ -87,5 +92,11 @@ func SecretQurry(c *gin.Context) {
 		c.Redirect(301, "/store/login")
 		return
 	}
-	service.SecretQurry(c, username1)
+	service.SecretQurry(c, username1, password)
+}
+
+// 修改密码
+func ResetPassword(c *gin.Context) {
+	newPassword := c.PostForm("newpassword")
+	service.ResetPassword(username, newPassword)
 }
