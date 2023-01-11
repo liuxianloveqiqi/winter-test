@@ -15,11 +15,11 @@ func UserRoute(r *gin.Engine) {
 	// 用户路业组准备
 	us := r.Group("/user")
 	{
-		us.POST("/register", Register)                                             //注册
-		us.POST("/login", Login)                                                   //登录
-		us.GET("logout", Logout)                                                   //退出
-		us.POST("/secret", SecretQurry)                                            //通过密保重置密码
-		us.POST("/resetpassword", service.AuthMiddleWare(username), ResetPassword) //修改密码
+		us.POST("/register", Register)                                        //注册
+		us.POST("/login", Login)                                              //登录
+		us.GET("logout", Logout)                                              //退出
+		us.POST("/secret", SecretQurry)                                       //通过密保重置密码
+		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword) //修改密码
 	}
 }
 
@@ -32,8 +32,8 @@ func Register(c *gin.Context) {
 		return
 	} else {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "注册成功",
-			"status":  200,
+			"status": 200,
+			"info":   "success",
 		})
 	}
 	// 使用md5加密密码
@@ -57,21 +57,23 @@ func Login(c *gin.Context) {
 	if !dao.CheckLogin(username, service.Md5(password)) {
 		// 验证失败，返回错误信息
 		c.JSON(401, gin.H{
-
-			"error":  "密码错误",
-			"status": 401})
+			"status": 401,
+			"info":   "error",
+			"data": gin.H{
+				"error": "密码错误",
+			},
+		})
 		return
 	} else {
+		//验证成功生成token
+		tokenString, _ := service.GetToken(username)
 		c.JSON(http.StatusOK, gin.H{
-			"message": "登录成功",
-			"hello":   username,
-			"status":  200,
+			"status":   200,
+			"info":     "success",
+			"token":    tokenString,
+			"username": username,
 		})
-
 	}
-	// 验证成功，设置 cookie 并跳转到首页
-
-	c.SetCookie("username", username, 3600*3, "/", "localhost", false, true)
 	c.Redirect(301, "/store")
 }
 
@@ -100,7 +102,11 @@ func ResetPassword(c *gin.Context) {
 	newPassword := c.PostForm("newpassword")
 	if len(newPassword) < 4 || len(newPassword) > 15 {
 		c.JSON(400, gin.H{
-			"error": "密码长度应大于等于4小于等于15",
+			"status": 401,
+			"info":   "error",
+			"data": gin.H{
+				"error": "密码长度应大于等于4小于等于15",
+			},
 		})
 		return
 	}
