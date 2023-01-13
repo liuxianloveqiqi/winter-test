@@ -13,11 +13,11 @@ var username, password string
 
 func UserRoute(r *gin.Engine) {
 	// 用户路业组准备
-	us := r.Group("/user")
+	us := r.Group("/suning/user")
 	{
 		us.POST("/register", Register)                                        //注册
 		us.POST("/login", Login)                                              //登录
-		us.GET("logout", Logout)                                              //退出
+		us.GET("logout", service.JwtAuthMiddleware(), Logout)                 //退出
 		us.POST("/secret", SecretQurry)                                       //通过密保重置密码
 		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword) //修改密码
 	}
@@ -28,7 +28,12 @@ func Register(c *gin.Context) {
 	var userregitser model.UserRegister
 	err := c.ShouldBind(&userregitser)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"status": 401,
+			"info": "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
 		return
 	} else {
 		c.JSON(http.StatusOK, gin.H{
@@ -79,8 +84,10 @@ func Login(c *gin.Context) {
 
 // 进行用户退出
 func Logout(c *gin.Context) {
-	// 删除用户的cookie
-	c.SetCookie("username", username, -1, "/", "localhost", false, true)
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+	})
 	// 重定向到网站首页
 	c.Redirect(301, "/store")
 }

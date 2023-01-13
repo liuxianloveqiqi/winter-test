@@ -137,7 +137,6 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		// userID可以用来查询数据库获取用户的权限，权限校验代码省略
 		// 验证通过
 		c.Set("claims", claims)
 		c.Next()
@@ -149,7 +148,7 @@ type MyClaims struct {
 	jwt.StandardClaims
 }
 
-const TokenExpireDuration = time.Hour * 3 //设置过期时间
+const TokenExpireTime = time.Hour * 24 //设置过期时间
 
 var Secret = []byte("liuxian123") //设置密码
 
@@ -158,11 +157,11 @@ func GetToken(username string) (string, error) {
 	c := MyClaims{
 		username, // 自定义字段
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(TokenExpireDuration).Unix(), // 过期时间
-			Issuer:    "liuxian",                                  // 签发人
+			ExpiresAt: time.Now().Add(TokenExpireTime).Unix(), // 过期时间
+			Issuer:    "liuxian",                              // 签发人
 		},
 	}
-	// 使用HS256签名方法创建签名对象
+	// 使用HS256算法签名方法创建签名对象
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
 	// 使用secret签名并获得字符串token
 	return token.SignedString(Secret)
@@ -177,7 +176,7 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := token.Claims.(*MyClaims); ok && token.Valid { //校验token
+	if claims, ok := token.Claims.(*MyClaims); ok && token.Valid {
 		return claims, nil
 	}
 	return nil, errors.New("token验证错误")

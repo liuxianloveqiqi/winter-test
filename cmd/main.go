@@ -12,5 +12,6 @@ func main() {
 	//打开路由
 	r := gin.Default()
 	api.UserRoute(r)
+	api.ProductsRoute(r)
 	r.Run(":9090")
 }
