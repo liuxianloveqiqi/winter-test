@@ -32,3 +32,9 @@ type Style struct {
 	ProductID string `json:"product_id" form:"product_id"`
 	Stock     int    `json:"stock" form:"stock"`
 }
+
+// 收藏商品
+type Favorite struct {
+	UserName  string `json:"user_name" form:"user_name"`
+	ProductID int    `json:"product_id" form:"product_id"`
+}

@@ -1,8 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"winter-test/dao"
+	"winter-test/model"
 	"winter-test/service"
 )
 
@@ -15,12 +18,10 @@ func ProductsRoute(r *gin.Engine) {
 		p.GET("/category/:name", ShowCategory) //主页分类展示
 		p.GET("/rotation", ShowRotation)       //轮播页面展示
 		// 商品的详情页
-		p.GET("/product/:id", DetailedProduct) //商品详情
+		p.GET("/:product_id", DetailedProduct) //商品详情
 		//商品收藏
-		r.POST("/favorites", service.JwtAuthMiddleware(), AddFavorite)
-		//r.DELETE("/favorites/:product_id",service.JwtAuthMiddleware(), RemoveFavorite)
-		//r.GET("/favorites/:user_id",  service.JwtAuthMiddleware(),ShowFavorites)
-
+		p.GET("/favorites/:product_id", service.JwtAuthMiddleware(), AddFavorite)       //收藏商品
+		p.DELETE("/favorites/:product_id", service.JwtAuthMiddleware(), RemoveFavorite) //取消收藏商品
 	}
 
 }
@@ -93,12 +94,84 @@ func ShowRotation(c *gin.Context) {
 // 商品详情页面
 func DetailedProduct(c *gin.Context) {
 	// 获取商品id
-	id := c.Param("id")
+	id := c.Param("product_id")
 	// 获取商品详细信息
 	service.Productdata(c, id)
 	// 获取该商品所有款式信息
 	service.GetStyles(c, id)
 }
-func AddFavorite(c *gin.Context) {
 
+// 收藏商品
+func AddFavorite(c *gin.Context) {
+	var favorite model.Favorite
+	// 获取商品id
+	id := c.Param("product_id")
+	favorite.ProductID, _ = strconv.Atoi(id)
+	// 获取token里面的username
+	favorite.UserName = c.MustGet("claims").(*model.MyClaims).UserName
+	fmt.Println(favorite.UserName)
+	if err := dao.AddFavorite(&favorite); err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   "收藏商品成功",
+	})
+}
+
+// 删除收藏商品
+func RemoveFavorite(c *gin.Context) {
+	var favorite model.Favorite
+	// 获取商品id
+	id := c.Param("product_id")
+	favorite.ProductID, _ = strconv.Atoi(id)
+	// 获取token里面的username
+	favorite.UserName = c.MustGet("claims").(*model.MyClaims).UserName
+	fmt.Println(favorite.UserName)
+	if err := dao.RemoveFavorite(&favorite); err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   "取消收藏商品成功",
+	})
+}
+
+// 展示用户的全部收藏
+func ShowFavorites(c *gin.Context) {
+	// 获取token里面的username
+	username1 := c.MustGet("claims").(*model.MyClaims).UserName
+	favorites, err := dao.ShowFavorites(username1)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   favorites,
+	})
 }

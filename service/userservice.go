@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 	"winter-test/dao"
+	"winter-test/model"
 )
 
 // 检查用户名是否存在
@@ -125,7 +126,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		username := claims.Username
+		username := claims.UserName
 		if username == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"status": 401,
@@ -143,18 +144,13 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-type MyClaims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
-
 const TokenExpireTime = time.Hour * 24 //设置过期时间
 
 var Secret = []byte("liuxian123") //设置密码
 
 func GetToken(username string) (string, error) {
 	// 创建一个Claims
-	c := MyClaims{
+	c := model.MyClaims{
 		username, // 自定义字段
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(TokenExpireTime).Unix(), // 过期时间
@@ -168,15 +164,15 @@ func GetToken(username string) (string, error) {
 }
 
 // 解析token
-func ParseToken(tokenString string) (*MyClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &MyClaims{},
+func ParseToken(tokenString string) (*model.MyClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &model.MyClaims{},
 		func(token *jwt.Token) (i interface{}, err error) {
 			return Secret, nil
 		})
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := token.Claims.(*MyClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*model.MyClaims); ok && token.Valid {
 		return claims, nil
 	}
 	return nil, errors.New("token验证错误")

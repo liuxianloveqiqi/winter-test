@@ -15,11 +15,12 @@ func UserRoute(r *gin.Engine) {
 	// 用户路业组准备
 	us := r.Group("/suning/user")
 	{
-		us.POST("/register", Register)                                        //注册
-		us.POST("/login", Login)                                              //登录
-		us.GET("logout", service.JwtAuthMiddleware(), Logout)                 //退出
-		us.POST("/secret", SecretQurry)                                       //通过密保重置密码
-		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword) //修改密码
+		us.POST("/register", Register)                                              //注册
+		us.POST("/login", Login)                                                    //登录
+		us.GET("logout", service.JwtAuthMiddleware(), Logout)                       //退出
+		us.POST("/secret", SecretQurry)                                             //通过密保重置密码
+		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword)       //修改密码
+		us.GET("/favorites/:user_name", service.JwtAuthMiddleware(), ShowFavorites) //展示用户收藏
 	}
 }
 

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"winter-test/dao"
 )
@@ -29,6 +30,7 @@ func Productdata(c *gin.Context, id string) {
 // 商品款式
 func GetStyles(c *gin.Context, id string) {
 	styles, err := dao.GetStyles(id)
+	fmt.Println("########", err)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"status": 500,
