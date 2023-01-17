@@ -14,6 +14,7 @@ func CartRoute(r *gin.Engine) {
 		cart.POST("/add", service.JwtAuthMiddleware(), AddCart) //添加商品到购物车
 		cart.GET("/list", service.JwtAuthMiddleware(), ListCart)
 		cart.DELETE("/remove", service.JwtAuthMiddleware(), RemoveCart) //删除购物车中的商品
+		cart.POST("/settle", service.JwtAuthMiddleware(), SettleCart)
 	}
 }
 
@@ -96,5 +97,33 @@ func ListCart(c *gin.Context) {
 		"status":  200,
 		"message": "Success",
 		"data":    carts,
+	})
+}
+
+// 结算购物车中的部分商品
+func SettleCart(c *gin.Context) {
+	var request model.SettleCartRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{
+			"status": 400,
+			"info":   "11111error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	// 调用dao层函数进行结算操作
+	settlecarts, err := dao.SettleCart(request.IDs)
+	if err != nil {
+		c.JSON(400, gin.H{
+			"status": 400,
+			"info":   "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"status":  200,
+		"message": "Success",
+		"data":    settlecarts,
 	})
 }
