@@ -13,5 +13,6 @@ func main() {
 	r := gin.Default()
 	api.UserRoute(r)
 	api.ProductsRoute(r)
+	api.CartRoute(r)
 	r.Run(":9090")
 }

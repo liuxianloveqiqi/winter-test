@@ -14,7 +14,6 @@ func SearchProducts(q, s, o string) ([]model.Product, error) {
 		rows, err = db.Query("select * from product where name like ? order by ?", "%"+q+"%", s)
 	} else {
 		rows, err = db.Query("select * from product where name like ? order by ? desc", "%"+q+"%", s)
-
 	}
 	if err != nil {
 		fmt.Println("***********", err)
@@ -31,8 +30,9 @@ func SearchProducts(q, s, o string) ([]model.Product, error) {
 		products = append(products, product)
 	}
 	return products, nil
-
 }
+
+// 根据分类搜索
 func ShowCategory(c string) ([]model.Product, error) {
 	rows, err := db.Query("select * from product where category = ?", c)
 	if err != nil {
@@ -111,7 +111,7 @@ func GetStyles(product_id string) ([]model.Style, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var style model.Style
-		if err := rows.Scan(&style.ID, &style.Name, &style.ProductID, &style.Stock); err != nil {
+		if err := rows.Scan(&style.ID, &style.Name, &style.ProductID, &style.Stock, &style.StyleImage); err != nil {
 			return nil, err
 		}
 		fmt.Println("***********", err)

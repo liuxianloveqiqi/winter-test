@@ -23,6 +23,13 @@ func ProductsRoute(r *gin.Engine) {
 		p.GET("/favorites/:product_id", service.JwtAuthMiddleware(), AddFavorite)       //收藏商品
 		p.DELETE("/favorites/:product_id", service.JwtAuthMiddleware(), RemoveFavorite) //取消收藏商品
 	}
+	// 实现购物车功能
+	cart := r.Group("/suning/cart")
+	{
+		cart.POST("/add", service.JwtAuthMiddleware(), AddCart) //添加商品到购物车
+		cart.GET("/list", service.JwtAuthMiddleware(), ListCart)
+		cart.DELETE("/remove", service.JwtAuthMiddleware(), RemoveCart) //删除购物车中的商品
+	}
 
 }
 
