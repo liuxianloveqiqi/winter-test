@@ -64,3 +64,71 @@ func ResetPassword(u, np string) error {
 	_, err := db.Exec(strSql, np, u)
 	return err
 }
+
+// 展示用户资料
+func GetUserMessage(username string) (model.UserMessage, error) {
+	var userMessage model.UserMessage
+	err := db.QueryRow("select human_name, phone_number,lockname, email, gender from user where username = ?", username).Scan(&userMessage.HumanName, &userMessage.PhoneNumber, &userMessage.LockName, &userMessage.Email, &userMessage.Gender)
+	if err != nil {
+		return userMessage, err
+	}
+	return userMessage, nil
+}
+
+// 用户修改资料
+func UpdateUserMessage(userMessage *model.UserMessage, username string) error {
+	query := `update user set`
+	fmt.Println(userMessage, "9999999")
+	// 通过判断传入的结构体的字段是否为空，来决定是否在sql语句中更新对应的字段
+	if userMessage.HumanName != "" {
+		query += ` human_name = '%s',`
+		query = fmt.Sprintf(query, userMessage.HumanName)
+	}
+	if userMessage.PhoneNumber != 0 {
+		query += ` phone_number = '%d',`
+		query = fmt.Sprintf(query, userMessage.PhoneNumber)
+	}
+	if userMessage.Email != "" {
+		query += ` email = '%s',`
+		query = fmt.Sprintf(query, userMessage.Email)
+	}
+	if userMessage.Gender != "" {
+		query += ` gender = '%s',`
+		query = fmt.Sprintf(query, userMessage.Gender)
+	}
+	if userMessage.LockName != "" {
+		query += ` lockname = '%s',`
+		query = fmt.Sprintf(query, userMessage.LockName)
+	}
+	// 将sql语句最后一个逗号删除，并将username查询条件拼接到语句后面
+	query = query[:len(query)-1] + " where username = '%s';"
+	query = fmt.Sprintf(query, username)
+	_, err := db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+// 查看余额
+func GetMoney(username string) (float64, error) {
+	query := "select money from user where username = ?"
+	var money float64
+	err := db.QueryRow(query, username).Scan(&money)
+	if err != nil {
+		return 0, err
+	}
+	return money, nil
+}
+
+// 充值余额
+func AddMoney(username string, m float64) error {
+	query := `update user set money = money + ? where username = ?`
+
+	_, err := db.Exec(query, m, username)
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"winter-test/dao"
 	"winter-test/model"
 	"winter-test/service"
@@ -21,6 +22,10 @@ func UserRoute(r *gin.Engine) {
 		us.POST("/secret", SecretQurry)                                             //通过密保重置密码
 		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword)       //修改密码
 		us.GET("/favorites/:user_name", service.JwtAuthMiddleware(), ShowFavorites) //展示用户收藏
+		us.GET("/message", service.JwtAuthMiddleware(), GetUserMessage)             //展示用户资料
+		us.POST("/message", service.JwtAuthMiddleware(), UpdateUserMessage)         //修改用户资料
+		us.GET("/money", service.JwtAuthMiddleware(), GetMoney)                     //查看余额
+		us.POST("/money", service.JwtAuthMiddleware(), AddMoney)
 	}
 }
 
@@ -90,7 +95,7 @@ func Logout(c *gin.Context) {
 		"info":   "success",
 	})
 	// 重定向到网站首页
-	c.Redirect(301, "/store")
+	c.Redirect(301, "/suning")
 }
 
 // 密保重置密码
@@ -119,4 +124,128 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 	service.ResetPassword(c, username, newPassword)
+}
+
+// 展示用户资料
+func GetUserMessage(c *gin.Context) {
+	// 获取token里面的username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+	// 从数据库中查询用户信息
+	userMessage, err := dao.GetUserMessage(username)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   userMessage,
+	})
+}
+
+// 修改用户资料
+func UpdateUserMessage(c *gin.Context) {
+	// 获取token里面的username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+
+	var userMessage model.UserMessage
+	if err := c.ShouldBind(&userMessage); err != nil {
+		c.JSON(400, gin.H{"status": 400,
+			"info": "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	// 调用dao层的UpdateUserMessage函数将修改的信息更新到数据库中
+	err := dao.UpdateUserMessage(&userMessage, username)
+	if err != nil {
+		c.JSON(500, gin.H{"status": 500,
+			"info": "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   "修改资料成功",
+	})
+}
+
+// 用户查看余额
+func GetMoney(c *gin.Context) {
+	// 获取token里面的username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+	// 从数据库中查询用户余额
+	money, err := dao.GetMoney(username)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data": gin.H{
+			"money": money,
+		},
+	})
+}
+
+// 充值余额
+func AddMoney(c *gin.Context) {
+	// 获取token里面的username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+
+	// 获取请求参数
+
+	a := c.PostForm("add_money")
+	addmoney, err0 := strconv.ParseFloat(a, 64)
+	fmt.Println(addmoney, "7777777")
+	if err0 != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err0.Error(),
+			},
+		})
+	}
+
+	if err := dao.AddMoney(username, addmoney); err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data": gin.H{
+			"message": "充值成功",
+		},
+	})
 }

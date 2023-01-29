@@ -12,7 +12,7 @@ type SmallCart struct {
 
 // 商品购物车
 type Cart struct {
-	ID           int            `json:"id" form:"id"`
+	ID           int64          `json:"id" form:"id"`
 	UserName     string         `json:"user_name" form:"user_name"`
 	ProductName  string         `json:"product_name" form:"product_name"`
 	Quantity     int            `json:"quantity" form:"quantity"`
@@ -20,6 +20,8 @@ type Cart struct {
 	ProductPrice float64        `json:"product_price" form:"product_price"`
 	StyleName    string         `json:"style_name" form:"style_name"`
 }
+
+// 结算购物车传入的ids
 type SettleCartRequest struct {
-	IDs []int `json:"ids"`
+	IDs []int `json:"ids" form:"ids"`
 }

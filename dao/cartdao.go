@@ -93,7 +93,7 @@ func ListCart(username string) ([]*model.Cart, error) {
 }
 
 // 结算购物车中的部分商品
-func SettleCart(cartItemIDs []int) ([]*model.Cart, error) {
+func SettleCart(cartItemIDs []int) ([]*model.Cart, float64, error) {
 	var carts []*model.Cart
 	var cart model.Cart
 	var totalPrice float64
@@ -103,30 +103,30 @@ func SettleCart(cartItemIDs []int) ([]*model.Cart, error) {
 	}
 	idList := strings.Join(s, ",")
 
-	query := fmt.Sprintf("SELECT c.id, c.user_name, p.name, c.quantity, p.image, p.price, s.name FROM cart c LEFT JOIN product p ON c.product_id = p.ID LEFT JOIN style s ON c.style_id = s.id WHERE c.id IN (%s)", idList)
+	query := fmt.Sprintf("select c.id, c.user_name, p.name, c.quantity, p.image, p.price, s.name FROM cart c LEFT JOIN product p ON c.product_id = p.ID LEFT JOIN style s ON c.style_id = s.id WHERE c.id IN (%s)", idList)
 	rows, err := db.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&cart.ID, &cart.UserName, &cart.ProductName, &cart.Quantity, &cart.ProductImage, &cart.ProductPrice, &cart.StyleName)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		carts = append(carts, &cart)
 		// 计算总价
 		totalPrice += cart.ProductPrice
 	}
-	// 从用户账户中扣除总价
-	_, err = db.Exec("update user set money = money - ? where username = ?", totalPrice, cart.UserName)
-	if err != nil {
-		return nil, err
-	}
-	// 从购物车中删除结算的商品
-	_, err = db.Exec(fmt.Sprintf("delete  from cart where id in (%s)", idList))
-	if err != nil {
-		return nil, err
-	}
-	return carts, nil
+	//// 从用户账户中扣除总价
+	//_, err = db.Exec("update user set money = money - ? where username = ?", totalPrice, cart.UserName)
+	//if err != nil {
+	//	return nil, 0, err
+	//}
+	//// 从购物车中删除结算的商品
+	//_, err = db.Exec(fmt.Sprintf("delete  from cart where id in (%s)", idList))
+	//if err != nil {
+	//	return nil, 0, err
+	//}
+	return carts, totalPrice, nil
 }
