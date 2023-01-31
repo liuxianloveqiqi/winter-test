@@ -16,16 +16,18 @@ func UserRoute(r *gin.Engine) {
 	// 用户路业组准备
 	us := r.Group("/suning/user")
 	{
-		us.POST("/register", Register)                                              //注册
-		us.POST("/login", Login)                                                    //登录
-		us.GET("logout", service.JwtAuthMiddleware(), Logout)                       //退出
-		us.POST("/secret", SecretQurry)                                             //通过密保重置密码
-		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword)       //修改密码
-		us.GET("/favorites/:user_name", service.JwtAuthMiddleware(), ShowFavorites) //展示用户收藏
-		us.GET("/message", service.JwtAuthMiddleware(), GetUserMessage)             //展示用户资料
-		us.POST("/message", service.JwtAuthMiddleware(), UpdateUserMessage)         //修改用户资料
-		us.GET("/money", service.JwtAuthMiddleware(), GetMoney)                     //查看余额
-		us.POST("/money", service.JwtAuthMiddleware(), AddMoney)
+		us.POST("/register", Register)                                                // 注册
+		us.POST("/login", Login)                                                      // 登录
+		us.GET("logout", service.JwtAuthMiddleware(), Logout)                         // 退出
+		us.POST("/secret", SecretQurry)                                               // 通过密保重置密码
+		us.POST("/resetpassword", service.JwtAuthMiddleware(), ResetPassword)         // 修改密码
+		us.GET("/favorites/:user_name", service.JwtAuthMiddleware(), ShowFavorites)   // 展示用户收藏
+		us.GET("/message", service.JwtAuthMiddleware(), GetUserMessage)               // 展示用户资料
+		us.POST("/message", service.JwtAuthMiddleware(), UpdateUserMessage)           // 修改用户资料
+		us.GET("/money", service.JwtAuthMiddleware(), GetMoney)                       // 查看余额
+		us.POST("/money", service.JwtAuthMiddleware(), AddMoney)                      // 充值余额
+		us.POST("/address", service.JwtAuthMiddleware(), CreatAddress)                // 新增收货地址
+		us.DELETE("/address/:address_id", service.JwtAuthMiddleware(), DeleteAddress) // 删除收货地址
 	}
 }
 
@@ -247,5 +249,63 @@ func AddMoney(c *gin.Context) {
 		"data": gin.H{
 			"message": "充值成功",
 		},
+	})
+}
+
+// 新增收获地址
+func CreatAddress(c *gin.Context) {
+	// 获取 token 中的 username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+
+	// 获取请求参数中的地址信息
+	place := c.PostForm("place")
+
+	// 向数据库中新增地址信息
+	address, err := dao.CreatAddress(username, place)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data": gin.H{
+			"address": address,
+		},
+	})
+}
+
+// 根据address_id删除地址
+func DeleteAddress(c *gin.Context) {
+	// 获取token里面的username
+	username := c.MustGet("claims").(*model.MyClaims).UserName
+	// 获取URL中的地址ID
+	addressIDStr := c.Param("address_id")
+	// 将地址ID字符串转换为int类型
+	addressID, _ := strconv.Atoi(addressIDStr)
+	// 在数据库中删除该收货地址
+	err := dao.DeleteAddress(username, addressID)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   "成功删除地址",
 	})
 }

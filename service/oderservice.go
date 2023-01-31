@@ -5,8 +5,8 @@ import (
 	"winter-test/dao"
 )
 
-func CreatOrder(username string, c *gin.Context) {
-	orderID, err := dao.CreateOrder(settlecarts, totalprice, username)
+func CreatOrder(username string, address_id int, c *gin.Context) {
+	order, err := dao.CreateOrder(settlecarts, totalprice, username, address_id, ids)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"status": 500,
@@ -21,7 +21,7 @@ func CreatOrder(username string, c *gin.Context) {
 			"status": 200,
 			"info":   "success",
 			"data": gin.H{
-				"orderID": orderID,
+				"order": order,
 			},
 		})
 	}

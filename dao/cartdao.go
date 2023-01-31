@@ -123,7 +123,7 @@ func SettleCart(cartItemIDs []int) ([]*model.Cart, float64, error) {
 	//if err != nil {
 	//	return nil, 0, err
 	//}
-	//// 从购物车中删除结算的商品
+	// 从购物车中删除结算的商品
 	//_, err = db.Exec(fmt.Sprintf("delete  from cart where id in (%s)", idList))
 	//if err != nil {
 	//	return nil, 0, err

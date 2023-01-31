@@ -125,10 +125,35 @@ func GetMoney(username string) (float64, error) {
 // 充值余额
 func AddMoney(username string, m float64) error {
 	query := `update user set money = money + ? where username = ?`
-
 	_, err := db.Exec(query, m, username)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// 新增收获地址
+func CreatAddress(username, place string) (model.Address, error) {
+	var address model.Address
+	query := "insert into address (user_name, place) values (?, ?)"
+	_, err := db.Exec(query, username, place)
+	if err != nil {
+		return address, err
+	}
+	err = db.QueryRow("select id,user_name,place from address where user_name = ? and place = ?", username, place).Scan(&address.ID, &address.UserName, &address.Place)
+	if err != nil {
+		return address, err
+	}
+	return address, nil
+}
+
+// 删除收货地址
+func DeleteAddress(username string, addressID int) error {
+	// 删除该收货地址
+	_, err := db.Exec("delete from address where id = ? and user_name = ?", addressID, username)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
