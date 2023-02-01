@@ -14,14 +14,17 @@ func ProductsRoute(r *gin.Engine) {
 	p := r.Group("/suning/products")
 	{
 		//主页的一些设置
-		p.GET("/search", SearchProducts)       //主页搜索
-		p.GET("/category/:name", ShowCategory) //主页分类展示
-		p.GET("/rotation", ShowRotation)       //轮播页面展示
+		p.GET("/search", SearchProducts)       // 主页搜索
+		p.GET("/category/:name", ShowCategory) // 主页分类展示
+		p.GET("/rotation", ShowRotation)       // 轮播页面展示
 		// 商品的详情页
-		p.GET("/:product_id", DetailedProduct) //商品详情
+		p.GET("/:product_id", DetailedProduct) // 商品详情
 		//商品收藏
-		p.GET("/favorites/:product_id", service.JwtAuthMiddleware(), AddFavorite)       //收藏商品
-		p.DELETE("/favorites/:product_id", service.JwtAuthMiddleware(), RemoveFavorite) //取消收藏商品
+		p.GET("/favorites/:product_id", service.JwtAuthMiddleware(), AddFavorite)       // 收藏商品
+		p.DELETE("/favorites/:product_id", service.JwtAuthMiddleware(), RemoveFavorite) // 取消收藏商品
+		// 店铺
+		p.GET("/seller/show", ShowSeller)   // 店铺详情展示
+		p.GET("/seller/sort", SortProducts) // 店铺商品排序展示
 	}
 
 }
@@ -173,5 +176,56 @@ func ShowFavorites(c *gin.Context) {
 		"status": 200,
 		"info":   "success",
 		"data":   favorites,
+	})
+}
+
+// 店铺展示
+func ShowSeller(c *gin.Context) {
+	// 请求店铺id
+	id := c.Query("seller_id")
+	sellerID, _ := strconv.Atoi(id)
+	// 调用dao层获取店铺信息
+	seller, err := dao.ShowSeller(sellerID)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   seller,
+	})
+}
+
+// 店铺商品按照销量...排序
+func SortProducts(c *gin.Context) {
+	// 获取排序规则
+	orderBy := c.DefaultQuery("order_by", "")
+	sort := c.DefaultQuery("sort", "asc")
+
+	// 调用dao层获取商品信息
+	products, err := dao.SortProducts(orderBy, sort)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"status": 200,
+		"info":   "success",
+		"data":   products,
 	})
 }

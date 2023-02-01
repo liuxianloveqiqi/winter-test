@@ -22,11 +22,14 @@ func SearchProducts(q, s, o string) ([]model.Product, error) {
 	defer rows.Close()
 	var products []model.Product
 	for rows.Next() {
+		var sellerID int
 		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &product.Seller); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
 			fmt.Println("***********", err)
 			return nil, err
 		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+		fmt.Println("999999", product.Seller)
 		products = append(products, product)
 	}
 	return products, nil
@@ -42,13 +45,17 @@ func ShowCategory(c string) ([]model.Product, error) {
 	}
 	defer rows.Close()
 	var products []model.Product
+	var sellerID int
 	for rows.Next() {
 		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &product.Seller); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
 			fmt.Println("***********", err)
 
 			return nil, err
 		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+		fmt.Println("999999", product.Seller)
+
 		products = append(products, product)
 	}
 	return products, nil
@@ -87,13 +94,16 @@ func Productdata(id string) ([]model.Product, error) {
 	}
 	defer rows.Close()
 	var products []model.Product
+	var sellerID int
 	for rows.Next() {
 		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &product.Seller); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
 			fmt.Println("***********", err)
 
 			return nil, err
 		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+		fmt.Println("999999", product.Seller)
 		products = append(products, product)
 	}
 	return products, nil
@@ -168,12 +178,56 @@ func ShowFavorites(username string) ([]model.Product, error) {
 	}
 	defer rows.Close()
 	var products []model.Product
+	var sellerID int
 	for rows.Next() {
 		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &product.Seller); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
 			return nil, err
 		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+		fmt.Println("999999", product.Seller)
 		products = append(products, product)
 	}
+	return products, nil
+}
+
+// 展示店铺
+func ShowSeller(sellerID int) (model.Seller, error) {
+	var seller model.Seller
+	err := db.QueryRow("select * from seller where id = ?", sellerID).Scan(&seller.ID, &seller.SellerName, &seller.Announcement, &seller.Description, &seller.SellerImage, &seller.SellerGrade)
+	if err != nil {
+		return seller, err
+	}
+	fmt.Println(seller, "ooooooooooo")
+	return seller, nil
+}
+
+// 店铺根据排序对象进行展示商品
+func SortProducts(orderBy, sort string) ([]model.Product, error) {
+	var products []model.Product
+	query := "select * from product"
+
+	// 根据排序规则组装SQL查询语句
+	if orderBy != "" {
+		query = query + " order by " + orderBy + " " + sort
+	}
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sellerID int
+	for rows.Next() {
+		var product model.Product
+
+		if err = rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
+			return nil, err
+		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+
+		products = append(products, product)
+	}
+
 	return products, nil
 }

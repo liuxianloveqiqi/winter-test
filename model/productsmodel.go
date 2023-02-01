@@ -1,6 +1,8 @@
 package model
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 // 商品
 type Product struct {
@@ -38,4 +40,14 @@ type Style struct {
 type Favorite struct {
 	UserName  string `json:"user_name" form:"user_name"`
 	ProductID int    `json:"product_id" form:"product_id"`
+}
+
+// 店铺
+type Seller struct {
+	ID           int     `json:"id" form:"id"`
+	SellerName   string  `json:"seller_name" form:"seller_name"`
+	Announcement string  `json:"announcement" form:"announcement"`
+	Description  string  `json:"description" form:"description"`
+	SellerImage  string  `json:"seller_image" form:"seller_image"`
+	SellerGrade  float64 `json:"seller_grade" form:"seller_grade"`
 }

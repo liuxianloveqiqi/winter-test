@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ func ShowMessage(username string) ([]model.Address, error) {
 
 // 创建订单
 func CreateOrder(carts []*model.Cart, amount float64, userName string, address_id int, cartItemIDs []int) (model.Order, error) {
-
+	// 插入订单数据
 	var order model.Order
 	res, err := db.Exec("insert into orders (user_name, amount, step, created_time, updated_time, address_id) values (?, ?, ?, ?, ?, ?)", userName, amount, 1, time.Now(), time.Now(), address_id)
 	if err != nil {
@@ -42,7 +43,6 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 
 		return order, err
 	}
-
 	// 创建订单商品关联
 	for _, cart := range carts {
 		_, err = db.Exec("insert into order_items (cart_id, order_id) values (?, ?)", cart.ID, orderID)
@@ -79,13 +79,15 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 
 		return order, err
 	}
-	row := db.QueryRow(`select orders.id ,orders.user_name, orders.amount, 
-                               user.human_name, user.phone_number, address.place, orders.step,
-                               orders.created_time, orders.updated_time 
-                               from orders  
-                               join address on orders.address_id
-                               join user on orders.user_name = user.username
-                               where orders.id = ?`, orderID)
+	// 查询出订单信息
+	row := db.QueryRow(`select  distinct orders.id ,orders.user_name, orders.amount,
+		user.human_name, user.phone_number, address.place, orders.step,
+		orders.created_time, orders.updated_time
+		from orders
+		join address on orders.address_id=address.id
+		join user on orders.user_name = user.username
+		where orders.user_name= ? and orders.step = ?
+		group by orders.id`, orderID)
 	fmt.Println(row, "uuuu")
 	err = row.Scan(&order.ID, &order.UserName, &order.Amount, &order.HumanName, &order.PhoneNumber, &order.Address, &order.Step, &order.CreatedTime, &order.UpdatedTime)
 	if err != nil {
@@ -95,4 +97,44 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 	}
 
 	return order, nil
+}
+
+// 分类展示订单
+func ShowOrdersByStep(username string, step int) ([]model.Order, error) {
+	rows, err := db.Query(`select orders.id ,orders.user_name, orders.amount,
+		                          user.human_name, user.phone_number, address.place, orders.step,
+		                          orders.created_time, orders.updated_time
+		                          from orders
+		                          join address on orders.address_id=address.id
+		                          join user on orders.user_name = user.username
+		                          where orders.user_name= ? and orders.step = ?`, username, step)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []model.Order
+	for rows.Next() {
+		var order model.Order
+		err = rows.Scan(&order.ID, &order.UserName, &order.Amount, &order.HumanName, &order.PhoneNumber, &order.Address, &order.Step, &order.CreatedTime, &order.UpdatedTime)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	if len(orders) == 0 {
+		return nil, errors.New("没有订单")
+	}
+	fmt.Println(orders)
+	return orders, nil
+}
+
+// 改变订单状态
+func UpdateOrderStep(id int, un string, step int) error {
+	query := `update orders set step = ? where id = ? and user_name = ?`
+	_, err := db.Exec(query, step, id, un)
+	if err != nil {
+		return err
+	}
+	return nil
 }
