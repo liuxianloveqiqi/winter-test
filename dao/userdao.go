@@ -7,8 +7,8 @@ import (
 
 // 插入用户注册的数据
 func Register(u *model.UserRegister, passwordhash16 string) {
-	sqlStr := "insert into user(username,password,lockname,SecretQ,SecretA) values (?,?,?,?,?)"
-	r, err := db.Exec(sqlStr, u.UserName, passwordhash16, u.LockName, u.SecretQ, u.SecretA)
+	sqlStr := "insert into user(username,password,nickname,SecretQ,SecretA) values (?,?,?,?,?)"
+	r, err := db.Exec(sqlStr, u.UserName, passwordhash16, u.Nickname, u.SecretQ, u.SecretA)
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 		return
@@ -68,7 +68,7 @@ func ResetPassword(u, np string) error {
 // 展示用户资料
 func GetUserMessage(username string) (model.UserMessage, error) {
 	var userMessage model.UserMessage
-	err := db.QueryRow("select human_name, phone_number,lockname, email, gender from user where username = ?", username).Scan(&userMessage.HumanName, &userMessage.PhoneNumber, &userMessage.LockName, &userMessage.Email, &userMessage.Gender)
+	err := db.QueryRow("select human_name, phone_number,nickname, email, gender from user where username = ?", username).Scan(&userMessage.HumanName, &userMessage.PhoneNumber, &userMessage.Nickname, &userMessage.Email, &userMessage.Gender)
 	if err != nil {
 		return userMessage, err
 	}
@@ -96,9 +96,9 @@ func UpdateUserMessage(userMessage *model.UserMessage, username string) error {
 		query += ` gender = '%s',`
 		query = fmt.Sprintf(query, userMessage.Gender)
 	}
-	if userMessage.LockName != "" {
-		query += ` lockname = '%s',`
-		query = fmt.Sprintf(query, userMessage.LockName)
+	if userMessage.Nickname != "" {
+		query += ` nickname = '%s',`
+		query = fmt.Sprintf(query, userMessage.Nickname)
 	}
 	// 将sql语句最后一个逗号删除，并将username查询条件拼接到语句后面
 	query = query[:len(query)-1] + " where username = '%s';"

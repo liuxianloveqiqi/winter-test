@@ -23,8 +23,9 @@ func ProductsRoute(r *gin.Engine) {
 		p.GET("/favorites/:product_id", service.JwtAuthMiddleware(), AddFavorite)       // 收藏商品
 		p.DELETE("/favorites/:product_id", service.JwtAuthMiddleware(), RemoveFavorite) // 取消收藏商品
 		// 店铺
-		p.GET("/seller/show", ShowSeller)   // 店铺详情展示
-		p.GET("/seller/sort", SortProducts) // 店铺商品排序展示
+		p.GET("/seller/show", ShowSeller)             // 店铺详情展示
+		p.GET("/seller/sort", SortProducts)           // 店铺商品排序展示
+		p.GET("/seller/category", SellerShowCategory) // 店铺商品分类展示
 	}
 
 }
@@ -228,4 +229,27 @@ func SortProducts(c *gin.Context) {
 		"info":   "success",
 		"data":   products,
 	})
+}
+
+// 店铺商品分类展示
+func SellerShowCategory(c *gin.Context) {
+	category := c.Query("name")
+	id := c.Query("seller_id")
+	sellerID, _ := strconv.Atoi(id)
+	products, err := dao.SellerShowCategory(category, sellerID)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"status": 500,
+			"info":   "error",
+			"data": gin.H{
+				"error": err,
+			},
+		})
+	} else {
+		c.JSON(200, gin.H{
+			"status": 200,
+			"info":   "success",
+			"data":   products,
+		})
+	}
 }

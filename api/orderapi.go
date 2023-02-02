@@ -9,7 +9,7 @@ import (
 	"winter-test/service"
 )
 
-func OderRounte(r *gin.Engine) {
+func OderRoute(r *gin.Engine) {
 	// 订单功能
 	order := r.Group("suning/order")
 	{

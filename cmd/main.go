@@ -14,6 +14,7 @@ func main() {
 	api.UserRoute(r)
 	api.ProductsRoute(r)
 	api.CartRoute(r)
-	api.OderRounte(r)
+	api.OderRoute(r)
+	api.CommentRoute(r)
 	r.Run(":9090")
 }

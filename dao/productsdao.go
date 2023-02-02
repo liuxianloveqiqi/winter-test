@@ -231,3 +231,30 @@ func SortProducts(orderBy, sort string) ([]model.Product, error) {
 
 	return products, nil
 }
+
+// 店铺分类展示商品
+func SellerShowCategory(c string, SellerID int) ([]model.Product, error) {
+	rows, err := db.Query("select * from product where category = ? and seller_id = ?", c, SellerID)
+	if err != nil {
+		fmt.Println("***********", err)
+
+		return nil, err
+	}
+	defer rows.Close()
+	var products []model.Product
+	var sellerID int
+	for rows.Next() {
+		var product model.Product
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
+			fmt.Println("***********", err)
+
+			return nil, err
+		}
+		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
+		fmt.Println("999999", product.Seller)
+
+		products = append(products, product)
+	}
+	fmt.Println(products)
+	return products, nil
+}
