@@ -29,9 +29,28 @@ func ShowMessage(username string) ([]model.Address, error) {
 
 // 创建订单
 func CreateOrder(carts []*model.Cart, amount float64, userName string, address_id int, cartItemIDs []int) (model.Order, error) {
-	// 插入订单数据
+
 	var order model.Order
-	res, err := db.Exec("insert into orders (user_name, amount, step, created_time, updated_time, address_id) values (?, ?, ?, ?, ?, ?)", userName, amount, 1, time.Now(), time.Now(), address_id)
+	// 创建了一个事务
+	tx, err := db.Begin()
+	if err != nil {
+		return order, err
+	}
+	// 确保保事务总是被提交或回滚
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			// 没有错误发生，提交事务
+			err = tx.Commit()
+		}
+	}()
+
+	// 插入订单数据
+	res, err := tx.Exec("insert into orders (user_name, amount, step, created_time, updated_time, address_id) values (?, ?, ?, ?, ?, ?)", userName, amount, 1, time.Now(), time.Now(), address_id)
 	if err != nil {
 		println(address_id)
 		fmt.Println(err, "1111111111")
@@ -45,7 +64,7 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 	}
 	// 创建订单商品关联
 	for _, cart := range carts {
-		_, err = db.Exec("insert into order_items (cart_id, order_id) values (?, ?)", cart.ID, orderID)
+		_, err = tx.Exec("insert into order_items (cart_id, order_id) values (?, ?)", cart.ID, orderID)
 		if err != nil {
 			fmt.Println(err, "3333333333333")
 
@@ -53,7 +72,7 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 		}
 	}
 	// 从用户账户中扣除总价
-	_, err = db.Exec("update user set money = money - ? where username = ?", amount, userName)
+	_, err = tx.Exec("update user set money = money - ? where username = ?", amount, userName)
 	if err != nil {
 		fmt.Println(err, "444444444444444")
 
@@ -66,12 +85,13 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 	}
 	idList := strings.Join(s, ",")
 	// 先删掉订单关联表中的商品删除
-	_, err = db.Exec(fmt.Sprintf("delete  from order_items where cart_id in (%s)", idList))
+	_, err = tx.Exec(fmt.Sprintf("delete  from order_items where cart_id in (%s)", idList))
 	if err != nil {
 		fmt.Println("7777")
+		fmt.Println(err)
 		return order, err
 	}
-	_, err = db.Exec(fmt.Sprintf("delete  from cart where id in (%s)", idList))
+	_, err = tx.Exec(fmt.Sprintf("delete  from cart where id in (%s)", idList))
 	if err != nil {
 		fmt.Println("*******", cartItemIDs)
 		fmt.Println(idList, "#####")
@@ -80,14 +100,13 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 		return order, err
 	}
 	// 查询出订单信息
-	row := db.QueryRow(`select  distinct orders.id ,orders.user_name, orders.amount,
-		user.human_name, user.phone_number, address.place, orders.step,
-		orders.created_time, orders.updated_time
-		from orders
-		join address on orders.address_id=address.id
-		join user on orders.user_name = user.username
-		where orders.user_name= ? and orders.step = ?
-		group by orders.id`, orderID)
+	row := tx.QueryRow(`select orders.id ,orders.user_name, orders.amount,
+		                          user.human_name, user.phone_number, address.place, orders.step,
+		                          orders.created_time, orders.updated_time
+		                          from orders
+		                          join address on orders.address_id=address.id
+		                          join user on orders.user_name = user.username
+		                          where orders.id = ?`, orderID)
 	fmt.Println(row, "uuuu")
 	err = row.Scan(&order.ID, &order.UserName, &order.Amount, &order.HumanName, &order.PhoneNumber, &order.Address, &order.Step, &order.CreatedTime, &order.UpdatedTime)
 	if err != nil {
