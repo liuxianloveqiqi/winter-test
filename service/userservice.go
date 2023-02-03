@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"time"
 	"winter-test/dao"
 	"winter-test/model"
@@ -98,13 +97,13 @@ func SecretQurry(c *gin.Context, u string, pa string) {
 //	}
 //
 
-// JWT 中间件，验证 token
+// JWT中间件，验证 token
 
 func JwtAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.JSON(401, gin.H{
 				"status": 401,
 				"info":   "error",
 				"error":  "请求未携带token，无权限访问",
@@ -114,7 +113,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 		}
 		claims, err := ParseToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.JSON(401, gin.H{
 				"status": 401,
 				"info":   "error",
 				"data": gin.H{
@@ -127,7 +126,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 
 		username := claims.UserName
 		if username == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.JSON(401, gin.H{
 				"status": 401,
 				"info":   "error",
 				"data": gin.H{
@@ -145,7 +144,7 @@ func JwtAuthMiddleware() gin.HandlerFunc {
 
 const TokenExpireTime = time.Hour * 24 //设置过期时间
 
-var Secret = []byte("liuxian123") //设置密码
+var Secret = []byte("liuxian123") //设置密钥
 
 func GetToken(username string) (string, error) {
 	// 创建一个Claims
