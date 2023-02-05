@@ -19,7 +19,7 @@ func Opendata() {
 	fmt.Printf("db: %v\n", db)
 }
 func InitDB() (err error) {
-	dsn := "root:xian712525@tcp(127.0.0.1:3306)/store?charset=utf8mb4"
+	dsn := "sql43_139_195_1:TA5G28rHsB@tcp(localhost:3306)/sql43_139_195_1?charset=utf8mb4"
 
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
