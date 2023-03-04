@@ -3,10 +3,12 @@ package service
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"time"
 	"winter-test/dao"
 	"winter-test/model"
@@ -32,7 +34,7 @@ func Md5(pasaword string) string {
 	hash := md5.New()
 	hash.Write([]byte(pasaword))
 	passwordHash := hash.Sum(nil)
-	// 将哈希密码转换为16进制储存
+	// 将密码转换为16进制储存
 	passwordHash16 := hex.EncodeToString(passwordHash)
 	return passwordHash16
 }
@@ -149,7 +151,7 @@ var Secret = []byte("liuxian123") //设置密钥
 func GetToken(username string) (string, error) {
 	// 创建一个Claims
 	c := model.MyClaims{
-		username, // 自定义字段
+		username,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(TokenExpireTime).Unix(), // 过期时间
 			Issuer:    "liuxian",                              // 签发人
@@ -201,4 +203,62 @@ func ResetPassword(c *gin.Context, u, np string) {
 			},
 		})
 	}
+}
+
+// 获取 github token
+func GetGithubToken(url string) (*model.Token, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("accept", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var token model.Token
+	if err := json.NewDecoder(res.Body).Decode(&token); err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+// 获取用户登录的请求
+func getGithubApiRequest(url string, token *model.Token) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("token %s", token.AccessToken))
+	return req, nil
+}
+
+// 获取用户信息
+func GetUserInfo(token *model.Token) (map[string]interface{}, error) {
+
+	// 使用github提供的接口
+	var userInfoUrl = "https://api.github.com/user"
+	req, err := getGithubApiRequest(userInfoUrl, token)
+	if err != nil {
+		return nil, err
+	}
+
+	// 发送请求并获取响应
+	var client = http.Client{}
+	var res *http.Response
+	if res, err = client.Do(req); err != nil {
+		return nil, err
+	}
+
+	// 将响应的数据写入userInfo中，并返回
+	var userInfo = make(map[string]interface{})
+	if err = json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
+		return nil, err
+	}
+	return userInfo, nil
 }

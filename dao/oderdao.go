@@ -36,7 +36,7 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 	if err != nil {
 		return order, err
 	}
-	// 确保保事务总是被提交或回滚
+	// 确保事务总是被提交或回滚
 	defer func() {
 		if p := recover(); p != nil {
 			tx.Rollback()
@@ -118,7 +118,7 @@ func CreateOrder(carts []*model.Cart, amount float64, userName string, address_i
 	return order, nil
 }
 
-// 分类展示订单
+// 按状态展示订单
 func ShowOrdersByStep(username string, step int) ([]model.Order, error) {
 	rows, err := db.Query(`select orders.id ,orders.user_name, orders.amount,
 		                          user.human_name, user.phone_number, address.place, orders.step,

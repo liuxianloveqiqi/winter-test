@@ -11,10 +11,12 @@ func main() {
 	dao.Opendata()
 	//打开路由
 	r := gin.Default()
+	r.LoadHTMLGlob("templates/*")
 	api.UserRoute(r)
 	api.ProductsRoute(r)
 	api.CartRoute(r)
 	api.OderRoute(r)
 	api.CommentRoute(r)
+	r.Static("/static", "./templates")
 	r.Run(":9090")
 }

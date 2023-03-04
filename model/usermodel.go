@@ -31,3 +31,17 @@ type Address struct {
 	UserName string `json:"username" form:"username"`
 	Place    string `json:"place" form:"place"`
 }
+
+// github第三方登录
+type Conf struct {
+	ClientId     string
+	ClientSecret string
+	RedirectUrl  string
+}
+
+// github token
+type Token struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"` // 这个字段没用到
+	Scope       string `json:"scope"`      // 这个字段也没用到
+}

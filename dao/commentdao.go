@@ -52,9 +52,9 @@ func GetComment(productID, parentID int) ([]model.NewComment, error) {
 	fmt.Println(productID, parentID)
 	rows, err := db.Query(`select comments.id, comments.user_name, user.NickName, comments.product_id, product.name, comments.comment, comments.time, comments.parent_id
 from comments
-join user ON comments.user_name = user.UserName
-join product ON comments.product_id = product.ID
-where comments.product_id = ? AND comments.parent_id = ?;`, productID, parentID)
+join user on comments.user_name = user.UserName
+join product on comments.product_id = product.ID
+where comments.product_id = ? and comments.parent_id = ?;`, productID, parentID)
 	if err != nil {
 		return nil, err
 
