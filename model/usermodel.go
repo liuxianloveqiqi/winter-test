@@ -13,6 +13,7 @@ type UserRegister struct {
 
 type MyClaims struct {
 	UserName string `json:"username" form:"username"`
+	State    string `json:"state"`
 	jwt.StandardClaims
 }
 
@@ -44,4 +45,21 @@ type Token struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"` // 这个字段没用到
 	Scope       string `json:"scope"`      // 这个字段也没用到
+}
+
+// OIDC
+type OIDCConfig struct {
+	AuthEndpoint string
+	ClientID     string
+	ResponseType string
+	Scope        string
+	RedirectURI  string
+}
+
+var oidcConfig = &OIDCConfig{
+	AuthEndpoint: "https://example.com/auth",
+	ClientID:     "your_client_id",
+	ResponseType: "code",
+	Scope:        "openid email profile",
+	RedirectURI:  "https://your_app.com/callback",
 }

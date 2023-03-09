@@ -91,7 +91,7 @@ func Login(c *gin.Context) {
 		return
 	} else {
 		//验证成功生成token
-		tokenString, _ := service.GetToken(username)
+		tokenString, _ := service.GetToken(username, service.GenerateRandomString(10))
 		c.JSON(200, gin.H{
 			"status":   200,
 			"info":     "success",

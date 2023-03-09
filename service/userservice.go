@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"math/rand"
 	"net/http"
 	"time"
 	"winter-test/dao"
@@ -148,10 +149,11 @@ const TokenExpireTime = time.Hour * 24 //设置过期时间
 
 var Secret = []byte("liuxian123") //设置密钥
 
-func GetToken(username string) (string, error) {
+func GetToken(username string, state string) (string, error) {
 	// 创建一个Claims
 	c := model.MyClaims{
 		username,
+		state,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(TokenExpireTime).Unix(), // 过期时间
 			Issuer:    "liuxian",                              // 签发人
@@ -225,6 +227,15 @@ func GetGithubToken(url string) (*model.Token, error) {
 	}
 
 	return &token, nil
+}
+
+// 随机state
+func GenerateRandomString(length int) string {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(bytes)
 }
 
 // 获取用户登录的请求
