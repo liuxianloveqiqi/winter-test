@@ -97,27 +97,3 @@ package main
 //			c.AbortWithStatus(http.StatusInternalServerError)
 //			return
 //		}
-//
-//		var userInfostruct {
-//			Sub       string `json:"sub"`
-//			Email     string `json:"email"`
-//			FirstName string `json:"given_name"`
-//			LastName  string `json:"family_name"`
-//		}
-//		err = json.NewDecoder(resp.Body).Decode(&userInfo)
-//		if err != nil {
-//			c.AbortWithStatus(http.StatusInternalServerError)
-//			return
-//		}
-//
-//		// 验证用户是否已经注册过
-//		// 如果是第一次登录，则进行用户注册流程
-//		// 如果已经注册过，则直接登录
-//
-
-//		c.JSON(http.StatusOK, gin.H{
-//			"message": "login success",
-//			"user":    userInfo,
-//		})
-//	})
-//}
