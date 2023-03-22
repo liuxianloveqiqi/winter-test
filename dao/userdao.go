@@ -1,74 +1,100 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"winter-test/model"
 )
 
 // 插入用户注册的数据
 func Register(u *model.UserRegister, passwordhash16 string) {
-	sqlStr := "insert into user(username,password,nickname,SecretQ,SecretA) values (?,?,?,?,?)"
-	r, err := db.Exec(sqlStr, u.UserName, passwordhash16, u.Nickname, u.SecretQ, u.SecretA)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
+	user := model.User{
+		UserName: u.UserName,
+		Password: u.Password,
+		NickName: u.Nickname,
+		SecretQ:  u.SecretQ,
+		SecretA:  u.SecretA,
+	}
+
+	result := db.Create(&user)
+	if result.Error != nil {
+		fmt.Printf("err: %v\n", result.Error)
 		return
 	}
-	i2, err2 := r.LastInsertId()
-	if err2 != nil {
-		fmt.Printf("err2: %v\n", err2)
-		return
-	}
-	fmt.Printf("--------i2: %v\n", i2)
+	fmt.Printf("username: %v\n", user.UserName)
 
 }
 
 // 查询用户名是否存在
 func QuerryUsername(u string) bool {
-	var count int
-	err := db.QueryRow("select count(*) from user where username = ?", u).Scan(&count)
-
-	return err == nil && count == 1
+	var count int64
+	result := db.Model(&model.User{}).Where("username = ?", u).Count(&count)
+	if result.Error != nil {
+		fmt.Printf("err: %v\n", result.Error)
+		return false
+	}
+	return count == 1
 }
 
 // 用户登录密码验证
 func CheckLogin(u, p string) bool {
-	var count int
-	//查询验证用户名和密码是否匹配
-	err := db.QueryRow("select count(*) from user where username = ? and password = ?", u, p).Scan(&count)
-	return err == nil && count == 1
+	var count int64
+	result := db.Model(&model.User{}).Where("username = ? and password = ?", u, p).Count(&count)
+	if result.Error != nil {
+		fmt.Printf("err: %v\n", result.Error)
+		return false
+	}
+	return count == 1
 }
 
 // 根据用户名查询密保问题
 func SecretQurryUsername(u string) string {
 	var Q string
-	err := db.QueryRow("select secretQ from user where username = ?", u).Scan(&Q)
-	if err != nil {
-		panic(err)
+	result := db.Model(&model.User{}).Select("secretQ").Where("username = ?", u).First(&Q)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return ""
+		}
+		fmt.Printf("err: %v\n", result.Error)
+		return ""
 	}
 	return Q
 }
 
 // 通过密保查密码
 func SecreQurryA(u, Q, A string) (bool, string) {
-	var count int
-	var p string
-	//查询验证用户密保
-	err := db.QueryRow("select count(*),password from user where username = ? and secretQ = ? and secretA = ? group by username", u, Q, A).Scan(&count, &p)
-	fmt.Println(err, "----------------", count)
-	return err == nil && count == 1, p
+
+	var userCountAndPwd model.UserCountAndPwd
+	result := db.Model(&model.User{}).Select("count(*), password").Where("username = ? and secretQ = ? and secretA = ?", u, Q, A).Group("username").Scan(&userCountAndPwd)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return false, ""
+		}
+		fmt.Printf("err: %v\n", result.Error)
+		return false, ""
+	}
+	return userCountAndPwd.Count == 1, userCountAndPwd.Password
+
 }
 
 // 修改密码
 func ResetPassword(u, np string) error {
-	strSql := "update user set password=? where username=?"
-	_, err := db.Exec(strSql, np, u)
-	return err
+	result := db.Model(&model.User{}).Where("username = ?", u).Update("password", np)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("user %s not found", u)
+		}
+		fmt.Printf("err: %v\n", result.Error)
+		return result.Error
+	}
+	return nil
 }
 
 // 展示用户资料
 func GetUserMessage(username string) (model.UserMessage, error) {
 	var userMessage model.UserMessage
-	err := db.QueryRow("select human_name, phone_number,nickname, email, gender from user where username = ?", username).Scan(&userMessage.HumanName, &userMessage.PhoneNumber, &userMessage.Nickname, &userMessage.Email, &userMessage.Gender)
+	err := db.Table("user").Where("username = ?", username).Select("human_name, phone_number, nickname, email, gender").Scan(&userMessage).Error
 	if err != nil {
 		return userMessage, err
 	}
@@ -77,45 +103,24 @@ func GetUserMessage(username string) (model.UserMessage, error) {
 
 // 用户修改资料
 func UpdateUserMessage(userMessage *model.UserMessage, username string) error {
-	query := `update user set`
-	fmt.Println(userMessage, "9999999")
-	// 通过判断传入的结构体的字段是否为空，来决定是否在sql语句中更新对应的字段
-	if userMessage.HumanName != "" {
-		query += ` human_name = '%s',`
-		query = fmt.Sprintf(query, userMessage.HumanName)
-	}
-	if userMessage.PhoneNumber != 0 {
-		query += ` phone_number = '%d',`
-		query = fmt.Sprintf(query, userMessage.PhoneNumber)
-	}
-	if userMessage.Email != "" {
-		query += ` email = '%s',`
-		query = fmt.Sprintf(query, userMessage.Email)
-	}
-	if userMessage.Gender != "" {
-		query += ` gender = '%s',`
-		query = fmt.Sprintf(query, userMessage.Gender)
-	}
-	if userMessage.Nickname != "" {
-		query += ` nickname = '%s',`
-		query = fmt.Sprintf(query, userMessage.Nickname)
-	}
-	// 将sql语句最后一个逗号删除，并将username查询条件拼接到语句后面
-	query = query[:len(query)-1] + " where username = '%s';"
-	query = fmt.Sprintf(query, username)
-	_, err := db.Exec(query)
+	err := db.Table("user").Where("username = ?", username).
+		Updates(map[string]interface{}{
+			"human_name":   userMessage.HumanName,
+			"phone_number": userMessage.PhoneNumber,
+			"email":        userMessage.Email,
+			"gender":       userMessage.Gender,
+			"nickname":     userMessage.Nickname,
+		}).Error
 	if err != nil {
 		return err
 	}
 	return nil
-
 }
 
 // 查看余额
 func GetMoney(username string) (float64, error) {
-	query := "select money from user where username = ?"
 	var money float64
-	err := db.QueryRow(query, username).Scan(&money)
+	err := db.Table("user").Where("username = ?", username).Pluck("money", &money).Error
 	if err != nil {
 		return 0, err
 	}
@@ -124,8 +129,7 @@ func GetMoney(username string) (float64, error) {
 
 // 充值余额
 func AddMoney(username string, m float64) error {
-	query := `update user set money = money + ? where username = ?`
-	_, err := db.Exec(query, m, username)
+	err := db.Table("user").Where("username = ?", username).UpdateColumn("money", gorm.Expr("money + ?", m)).Error
 	if err != nil {
 		return err
 	}
@@ -135,25 +139,20 @@ func AddMoney(username string, m float64) error {
 // 新增收获地址
 func CreatAddress(username, place string) (model.Address, error) {
 	var address model.Address
-	query := "insert into address (user_name, place) values (?, ?)"
-	_, err := db.Exec(query, username, place)
-	if err != nil {
-		return address, err
-	}
-	err = db.QueryRow("select id,user_name,place from address where user_name = ? and place = ?", username, place).Scan(&address.ID, &address.UserName, &address.Place)
-	if err != nil {
-		return address, err
+	address.UserName = username
+	address.Place = place
+	result := db.Create(&address)
+	if result.Error != nil {
+		return address, result.Error
 	}
 	return address, nil
 }
 
 // 删除收货地址
 func DeleteAddress(username string, addressID int) error {
-	// 删除该收货地址
-	_, err := db.Exec("delete from address where id = ? and user_name = ?", addressID, username)
-	if err != nil {
-		return err
+	result := db.Table("address").Where("id = ? and user_name = ?", addressID, username).Delete(&model.Address{})
+	if result.Error != nil {
+		return result.Error
 	}
-
 	return nil
 }

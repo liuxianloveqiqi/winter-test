@@ -1,85 +1,67 @@
 package dao
 
 import (
-	"database/sql"
 	"fmt"
 	"winter-test/model"
 )
 
 // 主页根据排序规则搜索商品
 func SearchProducts(q, s, o string) ([]model.Product, error) {
-	var rows *sql.Rows
-	var err error
-	if o == "asc" || o == "" {
-		rows, err = db.Query("select * from product where name like ? order by ?", "%"+q+"%", s)
-	} else {
-		rows, err = db.Query("select * from product where name like ? order by ? desc", "%"+q+"%", s)
+	var products []model.Product
+	order := fmt.Sprintf("%s %s", s, o)
+	if o == "" {
+		order = s
 	}
+	err := db.Where("name LIKE ?", "%"+q+"%").Order(order).Find(&products).Error
 	if err != nil {
 		fmt.Println("***********", err)
 		return nil, err
 	}
-	defer rows.Close()
-	var products []model.Product
-	for rows.Next() {
-		var sellerID int
-		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
+	for i := range products {
+		var seller model.Seller
+		result := db.Model(&model.Seller{}).Where("name = ?", products[i].Seller).First(&seller)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if err := db.Where("id = ?", seller.ID).First(&seller).Error; err != nil {
 			fmt.Println("***********", err)
 			return nil, err
 		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-		fmt.Println("999999", product.Seller)
-		products = append(products, product)
+		products[i].Seller = seller.SellerName
 	}
 	return products, nil
 }
 
 // 根据分类搜索
 func ShowCategory(c string) ([]model.Product, error) {
-	rows, err := db.Query("select * from product where category = ?", c)
-	if err != nil {
-		fmt.Println("***********", err)
-
-		return nil, err
-	}
-	defer rows.Close()
 	var products []model.Product
-	var sellerID int
-	for rows.Next() {
-		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
-			fmt.Println("***********", err)
-
-			return nil, err
+	result := db.Where("category = ?", c).Find(&products)
+	if result.Error != nil {
+		fmt.Println("***********", result.Error)
+		return nil, result.Error
+	}
+	for i := range products {
+		var seller model.Seller
+		result = db.Model(&model.Seller{}).Where("name = ?", products[i].Seller).First(&seller)
+		if result.Error != nil {
+			return nil, result.Error
 		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-		fmt.Println("999999", product.Seller)
-
-		products = append(products, product)
+		result := db.Where("id = ?", seller.ID).First(&seller)
+		if result.Error != nil {
+			fmt.Println("***********", result.Error)
+			return nil, result.Error
+		}
+		products[i].Seller = seller.SellerName
 	}
 	return products, nil
 }
 
 // 轮播展示商品
 func ShowRotation() ([]model.RotationProduct, error) {
-	rows, err := db.Query("select * from rotation_product")
-	if err != nil {
-		fmt.Println("***********", err)
-
-		return nil, err
-	}
-	defer rows.Close()
 	var rotationProducts []model.RotationProduct
-
-	for rows.Next() {
-		var rotationProduct model.RotationProduct
-		if err := rows.Scan(&rotationProduct.ID, &rotationProduct.Name, &rotationProduct.Image, &rotationProduct.Description, &rotationProduct.URL); err != nil {
-			fmt.Println("***********", err)
-
-			return nil, err
-		}
-		rotationProducts = append(rotationProducts, rotationProduct)
+	if err := db.Find(&rotationProducts).Error; err != nil {
+		fmt.Println("***********", err)
+		return nil, err
 	}
 	return rotationProducts, nil
 }

@@ -2,6 +2,21 @@ package model
 
 import "github.com/dgrijalva/jwt-go"
 
+type User struct {
+	ID          int    `gorm:"primaryKey"`
+	UserName    string `gorm:"primaryKey"`
+	Password    string `gorm:"not null"`
+	NickName    string `gorm:"not null"`
+	SecretQ     string
+	SecretA     string `gorm:"not null"`
+	Head        string
+	Money       float64 `gorm:"default:0.00"`
+	HumanName   string
+	PhoneNumber int
+	Email       string
+	Gender      string `gorm:"default:保密"`
+}
+
 // 用户注册
 type UserRegister struct {
 	UserName string `form:"username" binding:"required,min=6,max=15"`
@@ -10,7 +25,10 @@ type UserRegister struct {
 	SecretQ  string `form:"secretQ" binding:"required"`
 	SecretA  string `form:"secretA" binding:"required"`
 }
-
+type UserCountAndPwd struct {
+	Count    int
+	Password string
+}
 type MyClaims struct {
 	UserName string `json:"username" form:"username"`
 	State    string `json:"state"`

@@ -14,7 +14,7 @@ var username, password string
 var conf = model.Conf{
 	"b0c68d641806bfde2460",
 	"8687d10848b4ca4c4afcf2f3cea351eb14c5f313",
-	"http://43.139.195.17:9090/auth/callback/github",
+	"http://localhost:9090/auth/callback/github",
 }
 
 // 创建 GitHub OAuth2 配置
@@ -110,7 +110,7 @@ func HandleGithubLogin(c *gin.Context) {
 	data := gin.H{
 		"ClientId":     "b0c68d641806bfde2460",
 		"ClientSecret": "8687d10848b4ca4c4afcf2f3cea351eb14c5f313",
-		"RedirectUrl":  "http://43.139.195.17:9090/auth/callback/github",
+		"RedirectUrl":  "http://localhost:9090/auth/callback/github",
 	}
 	c.HTML(http.StatusOK, "index.html", data)
 }
