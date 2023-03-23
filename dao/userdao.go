@@ -17,7 +17,7 @@ func Register(u *model.UserRegister, passwordhash16 string) {
 		SecretA:  u.SecretA,
 	}
 
-	result := db.Create(&user)
+	result := DB.Create(&user)
 	if result.Error != nil {
 		fmt.Printf("err: %v\n", result.Error)
 		return
@@ -29,7 +29,7 @@ func Register(u *model.UserRegister, passwordhash16 string) {
 // 查询用户名是否存在
 func QuerryUsername(u string) bool {
 	var count int64
-	result := db.Model(&model.User{}).Where("username = ?", u).Count(&count)
+	result := DB.Model(&model.User{}).Where("username = ?", u).Count(&count)
 	if result.Error != nil {
 		fmt.Printf("err: %v\n", result.Error)
 		return false
@@ -40,7 +40,7 @@ func QuerryUsername(u string) bool {
 // 用户登录密码验证
 func CheckLogin(u, p string) bool {
 	var count int64
-	result := db.Model(&model.User{}).Where("username = ? and password = ?", u, p).Count(&count)
+	result := DB.Model(&model.User{}).Where("username = ? and password = ?", u, p).Count(&count)
 	if result.Error != nil {
 		fmt.Printf("err: %v\n", result.Error)
 		return false
@@ -51,7 +51,7 @@ func CheckLogin(u, p string) bool {
 // 根据用户名查询密保问题
 func SecretQurryUsername(u string) string {
 	var Q string
-	result := db.Model(&model.User{}).Select("secretQ").Where("username = ?", u).First(&Q)
+	result := DB.Model(&model.User{}).Select("secretQ").Where("username = ?", u).First(&Q)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return ""
@@ -66,7 +66,7 @@ func SecretQurryUsername(u string) string {
 func SecreQurryA(u, Q, A string) (bool, string) {
 
 	var userCountAndPwd model.UserCountAndPwd
-	result := db.Model(&model.User{}).Select("count(*), password").Where("username = ? and secretQ = ? and secretA = ?", u, Q, A).Group("username").Scan(&userCountAndPwd)
+	result := DB.Model(&model.User{}).Select("count(*), password").Where("username = ? and secretQ = ? and secretA = ?", u, Q, A).Group("username").Scan(&userCountAndPwd)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return false, ""
@@ -80,7 +80,7 @@ func SecreQurryA(u, Q, A string) (bool, string) {
 
 // 修改密码
 func ResetPassword(u, np string) error {
-	result := db.Model(&model.User{}).Where("username = ?", u).Update("password", np)
+	result := DB.Model(&model.User{}).Where("username = ?", u).Update("password", np)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("user %s not found", u)
@@ -94,7 +94,7 @@ func ResetPassword(u, np string) error {
 // 展示用户资料
 func GetUserMessage(username string) (model.UserMessage, error) {
 	var userMessage model.UserMessage
-	err := db.Table("user").Where("username = ?", username).Select("human_name, phone_number, nickname, email, gender").Scan(&userMessage).Error
+	err := DB.Table("user").Where("username = ?", username).Select("human_name, phone_number, nickname, email, gender").Scan(&userMessage).Error
 	if err != nil {
 		return userMessage, err
 	}
@@ -103,7 +103,7 @@ func GetUserMessage(username string) (model.UserMessage, error) {
 
 // 用户修改资料
 func UpdateUserMessage(userMessage *model.UserMessage, username string) error {
-	err := db.Table("user").Where("username = ?", username).
+	err := DB.Table("user").Where("username = ?", username).
 		Updates(map[string]interface{}{
 			"human_name":   userMessage.HumanName,
 			"phone_number": userMessage.PhoneNumber,
@@ -120,7 +120,7 @@ func UpdateUserMessage(userMessage *model.UserMessage, username string) error {
 // 查看余额
 func GetMoney(username string) (float64, error) {
 	var money float64
-	err := db.Table("user").Where("username = ?", username).Pluck("money", &money).Error
+	err := DB.Table("user").Where("username = ?", username).Pluck("money", &money).Error
 	if err != nil {
 		return 0, err
 	}
@@ -129,7 +129,7 @@ func GetMoney(username string) (float64, error) {
 
 // 充值余额
 func AddMoney(username string, m float64) error {
-	err := db.Table("user").Where("username = ?", username).UpdateColumn("money", gorm.Expr("money + ?", m)).Error
+	err := DB.Table("user").Where("username = ?", username).UpdateColumn("money", gorm.Expr("money + ?", m)).Error
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func CreatAddress(username, place string) (model.Address, error) {
 	var address model.Address
 	address.UserName = username
 	address.Place = place
-	result := db.Create(&address)
+	result := DB.Create(&address)
 	if result.Error != nil {
 		return address, result.Error
 	}
@@ -150,7 +150,7 @@ func CreatAddress(username, place string) (model.Address, error) {
 
 // 删除收货地址
 func DeleteAddress(username string, addressID int) error {
-	result := db.Table("address").Where("id = ? and user_name = ?", addressID, username).Delete(&model.Address{})
+	result := DB.Table("address").Where("id = ? and user_name = ?", addressID, username).Delete(&model.Address{})
 	if result.Error != nil {
 		return result.Error
 	}

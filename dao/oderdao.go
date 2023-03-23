@@ -12,7 +12,7 @@ import (
 // 展示收货信息
 func ShowMessage(username string) ([]model.Address, error) {
 	var addresses []model.Address
-	if err := db.Where("user_name = ?", username).Find(&addresses).Error; err != nil {
+	if err := DB.Where("user_name = ?", username).Find(&addresses).Error; err != nil {
 		return nil, err
 	}
 	return addresses, nil
