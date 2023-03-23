@@ -11,18 +11,9 @@ import (
 
 // 展示收货信息
 func ShowMessage(username string) ([]model.Address, error) {
-	rows, err := db.Query("select * from address where user_name = ?", username)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 	var addresses []model.Address
-	for rows.Next() {
-		var address model.Address
-		if err := rows.Scan(&address.ID, &address.UserName, &address.Place); err != nil {
-			return nil, err
-		}
-		addresses = append(addresses, address)
+	if err := db.Where("user_name = ?", username).Find(&addresses).Error; err != nil {
+		return nil, err
 	}
 	return addresses, nil
 }

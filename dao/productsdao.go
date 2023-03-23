@@ -66,27 +66,16 @@ func ShowRotation() ([]model.RotationProduct, error) {
 	return rotationProducts, nil
 }
 
-// 商品详情
 func Productdata(id string) ([]model.Product, error) {
-	rows, err := db.Query("select * from product where ID = ?", id)
-	if err != nil {
-		fmt.Println("***********", err)
-
-		return nil, err
-	}
-	defer rows.Close()
 	var products []model.Product
-	var sellerID int
-	for rows.Next() {
-		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
-			fmt.Println("***********", err)
-
-			return nil, err
-		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-		fmt.Println("999999", product.Seller)
-		products = append(products, product)
+	result := db.Where("id = ?", id).Find(&products)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	for i := range products {
+		var seller model.Seller
+		db.Model(&products[i]).Association("Seller").Find(&seller)
+		products[i].Seller = seller.SellerName
 	}
 	return products, nil
 }
@@ -94,21 +83,9 @@ func Productdata(id string) ([]model.Product, error) {
 // 商品款式
 func GetStyles(product_id string) ([]model.Style, error) {
 	var styles []model.Style
-
-	rows, err := db.Query("select  * from style where product_id = ?", product_id)
-	if err != nil {
-		fmt.Println("***********", err)
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var style model.Style
-		if err := rows.Scan(&style.ID, &style.Name, &style.ProductID, &style.Stock, &style.StyleImage); err != nil {
-			return nil, err
-		}
-		fmt.Println("***********", err)
-
-		styles = append(styles, style)
+	result := db.Preload("product").Where("product_id = ?", product_id).Find(&styles)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 	return styles, nil
 }
@@ -116,17 +93,16 @@ func GetStyles(product_id string) ([]model.Style, error) {
 // 收藏商品
 func AddFavorite(f *model.Favorite) error {
 	// 判断是否已经收藏过该商品
-	var count int
-	err := db.QueryRow("select count(*) from favorite where user_name = ? and product_id = ?", f.UserName, f.ProductID).Scan(&count)
-	if err != nil {
+	var count int64
+	if err := db.Model(&model.Favorite{}).Where("user_name = ? and product_id = ?", f.UserName, f.ProductID).Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
 		return fmt.Errorf("该商品已经收藏了")
 	}
+
 	// 插入收藏商品记录
-	_, err = db.Exec("insert into favorite (user_name, product_id) values (?, ?)", f.UserName, f.ProductID)
-	if err != nil {
+	if err := db.Create(f).Error; err != nil {
 		return err
 	}
 	return nil
@@ -135,17 +111,15 @@ func AddFavorite(f *model.Favorite) error {
 // 取消收藏的商品
 func RemoveFavorite(f *model.Favorite) error {
 	// 判断是否已经收藏过该商品
-	var count int
-	err := db.QueryRow("select count(*) from favorite where user_name = ? and product_id = ?", f.UserName, f.ProductID).Scan(&count)
-	if err != nil {
+	var count int64
+	if err := db.Model(&model.Favorite{}).Where("user_name = ? and product_id = ?", f.UserName, f.ProductID).Count(&count).Error; err != nil {
 		return err
 	}
 	if count == 0 {
 		return fmt.Errorf("还未收藏该商品，无法取消收藏商品")
 	}
 	// 删除收藏商品记录
-	_, err = db.Exec("delete from favorite where user_name = ? and product_id = ?", f.UserName, f.ProductID)
-	if err != nil {
+	if err := db.Where("user_name = ? and product_id = ?", f.UserName, f.ProductID).Delete(&model.Favorite{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -153,22 +127,23 @@ func RemoveFavorite(f *model.Favorite) error {
 
 // 展示用户所有的收藏商品
 func ShowFavorites(username string) ([]model.Product, error) {
-	// 内连接查询
-	rows, err := db.Query("select product.* from favorite join product on favorite.product_id = product.id where favorite.user_name = ?", username)
-	if err != nil {
+	var products []model.Product
+	if err := db.Model(&model.Favorite{}).Joins("JOIN product ON favorite.product_id = product.id").
+		Where("favorite.user_name = ?", username).Scan(&products).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var products []model.Product
-	var sellerID int
-	for rows.Next() {
-		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
+	for i := range products {
+		// 获取卖家信息
+		var seller model.Seller
+
+		result := db.Model(&model.Seller{}).Where("name = ?", products[i].Seller).First(&seller)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if err := db.Model(&model.Seller{}).Where("id = ?", seller.ID).First(&seller).Error; err != nil {
 			return nil, err
 		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-		fmt.Println("999999", product.Seller)
-		products = append(products, product)
+		products[i].Seller = seller.SellerName
 	}
 	return products, nil
 }
@@ -176,67 +151,35 @@ func ShowFavorites(username string) ([]model.Product, error) {
 // 展示店铺
 func ShowSeller(sellerID int) (model.Seller, error) {
 	var seller model.Seller
-	err := db.QueryRow("select * from seller where id = ?", sellerID).Scan(&seller.ID, &seller.SellerName, &seller.Announcement, &seller.Description, &seller.SellerImage, &seller.SellerGrade)
+	err := db.First(&seller, sellerID).Error
 	if err != nil {
 		return seller, err
 	}
-	fmt.Println(seller, "ooooooooooo")
 	return seller, nil
 }
 
 // 店铺根据排序对象进行展示商品
 func SortProducts(orderBy, sort string) ([]model.Product, error) {
 	var products []model.Product
-	query := "select * from product"
-
-	// 根据排序规则组装SQL查询语句
-	if orderBy != "" {
-		query = query + " order by " + orderBy + " " + sort
+	query := db.Order(orderBy + " " + sort).Find(&products)
+	if query.Error != nil {
+		return nil, query.Error
 	}
-
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
+	for i := range products {
+		db.Model(&products[i]).Association("Seller").Find(&products[i].Seller)
 	}
-	defer rows.Close()
-	var sellerID int
-	for rows.Next() {
-		var product model.Product
-
-		if err = rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
-			return nil, err
-		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-
-		products = append(products, product)
-	}
-
 	return products, nil
 }
 
 // 店铺分类展示商品
-func SellerShowCategory(c string, SellerID int) ([]model.Product, error) {
-	rows, err := db.Query("select * from product where category = ? and seller_id = ?", c, SellerID)
-	if err != nil {
-		fmt.Println("***********", err)
-
-		return nil, err
-	}
-	defer rows.Close()
+func SellerShowCategory(c string, sellerID int) ([]model.Product, error) {
 	var products []model.Product
-	var sellerID int
-	for rows.Next() {
-		var product model.Product
-		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.Image, &product.Category, &product.Price, &product.Stock, &product.Sale, &product.Rating, &sellerID); err != nil {
-			fmt.Println("***********", err)
-
-			return nil, err
-		}
-		db.QueryRow("select seller_name from seller where id = ?", sellerID).Scan(&product.Seller)
-		fmt.Println("999999", product.Seller)
-
-		products = append(products, product)
+	query := db.Where("category = ? AND seller_id = ?", c, sellerID).Find(&products)
+	if query.Error != nil {
+		return nil, query.Error
 	}
-	fmt.Println(products)
+	for i := range products {
+		db.Model(&products[i]).Association("Seller").Find(&products[i].Seller)
+	}
 	return products, nil
 }
